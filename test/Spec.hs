@@ -11,7 +11,7 @@ import           Data.Monoid      ((<>))
 import           Data.Traversable (for)
 import qualified Data.Yaml        as Yaml
 import           System.Directory (doesDirectoryExist, getDirectoryContents)
-import           System.FilePath  ((</>))
+import           System.FilePath  (takeBaseName, takeFileName, (</>))
 import           System.Process   (readProcess)
 import           Test.Tasty       (TestTree, defaultMain, testGroup)
 import           Test.Tasty.HUnit (assertEqual, testCase)
@@ -30,7 +30,7 @@ main = do
 loadTestsFromDirectory :: FilePath -> IO TestTree
 loadTestsFromDirectory dir = do
     files <- getDirectoryContents dir
-    testGroup dir . catMaybes <$> for files loadTestsFrom
+    testGroup (takeFileName dir) . catMaybes <$> for files loadTestsFrom
   where
     loadTestsFrom "."   = pure Nothing
     loadTestsFrom ".."  = pure Nothing
@@ -49,7 +49,7 @@ testYaml :: FilePath -> IO TestTree
 testYaml file = runScriptToError $ do
     LangSpecSet{lss_haskell, lss_ocaml} <-
         mkExceptT ((file <>) . (": " <>) . show) $ Yaml.decodeFileEither file
-    pure $ testGroup file
+    pure $ testGroup (takeBaseName file)
         [ testCase "Haskell"  $ for_ lss_haskell  testHaskellRepl
         , testCase "OCaml"    $ for_ lss_ocaml    testOcamlRepl
         ]

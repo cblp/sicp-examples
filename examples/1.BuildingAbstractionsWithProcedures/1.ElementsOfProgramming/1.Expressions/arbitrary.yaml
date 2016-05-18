@@ -1,0 +1,15 @@
+scheme:
+  - in: (+ 21 35 12 7)
+    out: 75
+  - in: (* 25 4 12)
+    out: 1200
+haskell:
+  - in: sum [21, 35, 12, 7]
+    out: '75'
+  - in: product [25, 4, 12]
+    out: '1200'
+ocaml:
+  - in: List.fold_left (+) 0 [21; 35; 12; 7];;
+    out: '- : int = 75'
+  - in: List.fold_left ( * ) 1 [25; 4; 12];;
+    out: '- : int = 1200'
