@@ -4,6 +4,7 @@
 import           Control.Error    (ExceptT(..), fmapL, runExceptT)
 import           Data.Aeson.TH    (defaultOptions, deriveFromJSON, fieldLabelModifier)
 import           Data.Char        (isSpace)
+import           Data.Foldable    (for_)
 import           Data.List        (dropWhileEnd, isSuffixOf)
 import           Data.Maybe       (catMaybes)
 import           Data.Monoid      ((<>))
@@ -18,7 +19,7 @@ import           Test.Tasty.HUnit (assertEqual, testCase)
 data LangSpec = LangSpec{ls_in :: String, ls_out :: String}
 deriveFromJSON defaultOptions{fieldLabelModifier = drop 3} ''LangSpec
 
-data LangSpecSet = LangSpecSet{lss_haskell :: LangSpec, lss_ocaml :: LangSpec}
+data LangSpecSet = LangSpecSet{lss_haskell :: [LangSpec], lss_ocaml :: [LangSpec]}
 deriveFromJSON defaultOptions{fieldLabelModifier = drop 4} ''LangSpecSet
 
 main :: IO ()
@@ -49,8 +50,8 @@ testYaml file = runScriptToError $ do
     LangSpecSet{lss_haskell, lss_ocaml} <-
         mkExceptT ((file <>) . (": " <>) . show) $ Yaml.decodeFileEither file
     pure $ testGroup file
-        [ testCase "Haskell" $ testHaskellRepl lss_haskell
-        , testCase "OCaml" $ testOcamlRepl lss_ocaml
+        [ testCase "Haskell"  $ for_ lss_haskell  testHaskellRepl
+        , testCase "OCaml"    $ for_ lss_ocaml    testOcamlRepl
         ]
 
 mkExceptT :: Functor m => (e1 -> e2) -> m (Either e1 a) -> ExceptT e2 m a
