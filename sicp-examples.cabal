@@ -28,6 +28,7 @@ test-suite sicp-examples-test
                     , directory
                     , errors
                     , filepath
+                    , process
                     , tasty
                     , tasty-hunit
                     , yaml
