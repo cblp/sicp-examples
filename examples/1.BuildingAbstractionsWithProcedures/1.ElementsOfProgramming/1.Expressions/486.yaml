@@ -1,2 +1,6 @@
-in: '486'
-out: '486'
+haskell:
+  in: '486'
+  out: '486'
+ocaml:
+  in: '486;;'
+  out: '- : int = 486'

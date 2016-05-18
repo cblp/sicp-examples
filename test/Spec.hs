@@ -15,8 +15,11 @@ import           System.Process   (readProcess)
 import           Test.Tasty       (TestTree, defaultMain, testGroup)
 import           Test.Tasty.HUnit (assertEqual, testCase)
 
-data TestDescription = TestDescription{td_in :: String, td_out :: String}
-deriveFromJSON defaultOptions{fieldLabelModifier = drop 3} ''TestDescription
+data LangSpec = LangSpec{ls_in :: String, ls_out :: String}
+deriveFromJSON defaultOptions{fieldLabelModifier = drop 3} ''LangSpec
+
+data LangSpecSet = LangSpecSet{lss_haskell :: LangSpec, lss_ocaml :: LangSpec}
+deriveFromJSON defaultOptions{fieldLabelModifier = drop 4} ''LangSpecSet
 
 main :: IO ()
 main = do
@@ -43,8 +46,12 @@ loadTestsFromDirectory dir = do
 
 testYaml :: FilePath -> IO TestTree
 testYaml file = runScriptToError $ do
-    testDescription <- mkExceptT ((file <>) . (": " <>) . show) $ Yaml.decodeFileEither file
-    pure . testCase file $ testHaskellRepl testDescription
+    LangSpecSet{lss_haskell, lss_ocaml} <-
+        mkExceptT ((file <>) . (": " <>) . show) $ Yaml.decodeFileEither file
+    pure $ testGroup file
+        [ testCase "Haskell" $ testHaskellRepl lss_haskell
+        , testCase "OCaml" $ testOcamlRepl lss_ocaml
+        ]
 
 mkExceptT :: Functor m => (e1 -> e2) -> m (Either e1 a) -> ExceptT e2 m a
 mkExceptT f = ExceptT . fmap (fmapL f)
@@ -52,8 +59,14 @@ mkExceptT f = ExceptT . fmap (fmapL f)
 runScriptToError :: Monad m => ExceptT String m a -> m a
 runScriptToError esma = either error id <$> runExceptT esma
 
-testHaskellRepl :: TestDescription -> IO ()
-testHaskellRepl TestDescription{td_in, td_out} = do
-    outRaw <- readProcess "ghc" ["-e", td_in] ""
+testHaskellRepl :: LangSpec -> IO ()
+testHaskellRepl LangSpec{ls_in, ls_out} = do
+    outRaw <- readProcess "ghc" ["-e", ls_in] ""
     let out = dropWhileEnd isSpace outRaw
-    assertEqual td_in td_out out
+    assertEqual ls_in ls_out out
+
+testOcamlRepl :: LangSpec -> IO ()
+testOcamlRepl LangSpec{ls_in, ls_out} = do
+    outRaw <- readProcess "ocaml" ["-noprompt"] ls_in
+    let out = dropWhileEnd isSpace . unlines . drop 3 $ lines outRaw
+    assertEqual ls_in ls_out out
